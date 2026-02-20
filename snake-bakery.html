@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>BUN RUNNER – Pekárna Hra</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700&display=swap');
+
+  :root {
+    --cream: #FFF8E7;
+    --wheat: #E8C97A;
+    --brown: #7B4A1E;
+    --dark: #3A2010;
+    --red: #C0392B;
+    --green: #27AE60;
+    --sesame: #A0522D;
+    --shadow: #5C3010;
+    --bg: #2C1A08;
+    --panel: #1A0E05;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    font-family: 'Nunito', sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    min-height: 100vh;
+    padding: 12px 8px 20px;
+    overflow-x: hidden;
+  }
+
+  /* Wheat texture bg */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(circle at 20% 20%, rgba(232,201,122,0.07) 0%, transparent 60%),
+      radial-gradient(circle at 80% 80%, rgba(123,74,30,0.15) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrapper {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 420px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  /* HEADER */
+  .header {
+    text-align: center;
+    padding: 4px 0 2px;
+  }
+
+  .logo {
+    font-family: 'Fredoka One', cursive;
+    font-size: 2rem;
+    color: var(--wheat);
+    text-shadow: 3px 3px 0 var(--shadow);
+    letter-spacing: 2px;
+    line-height: 1;
+  }
+
+  .logo span { color: #FF6B35; }
+  .subtitle {
+    font-size: 0.7rem;
+    color: #AA8040;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  /* SCORE PANEL */
+  .score-panel {
+    display: flex;
+    gap: 12px;
+    background: var(--panel);
+    border: 2px solid var(--brown);
+    border-radius: 12px;
+    padding: 8px 20px;
+    width: 100%;
+  }
+
+  .score-box {
+    flex: 1;
+    text-align: center;
+  }
+
+  .score-label {
+    font-size: 0.6rem;
+    color: #AA8040;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    display: block;
+  }
+
+  .score-value {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.5rem;
+    color: var(--wheat);
+    line-height: 1;
+  }
+
+  .score-sep {
+    width: 1px;
+    background: var(--brown);
+    opacity: 0.5;
+  }
+
+  /* CANVAS WRAPPER */
+  .canvas-wrap {
+    position: relative;
+    border: 3px solid var(--brown);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 0 30px rgba(123,74,30,0.4), inset 0 0 20px rgba(0,0,0,0.3);
+  }
+
+  canvas {
+    display: block;
+    image-rendering: pixelated;
+  }
+
+  /* OVERLAY */
+  .overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(26, 14, 5, 0.88);
+    gap: 14px;
+    transition: opacity 0.3s;
+  }
+
+  .overlay.hidden { display: none; }
+
+  .overlay-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.8rem;
+    color: var(--wheat);
+    text-shadow: 2px 2px 0 var(--shadow);
+    text-align: center;
+    line-height: 1.2;
+  }
+
+  .overlay-title.gameover { color: #FF6B35; }
+
+  .overlay-sub {
+    font-size: 0.8rem;
+    color: #AA8040;
+    text-align: center;
+    max-width: 200px;
+    line-height: 1.5;
+  }
+
+  .btn-start {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.1rem;
+    color: var(--dark);
+    background: var(--wheat);
+    border: none;
+    border-radius: 30px;
+    padding: 10px 32px;
+    cursor: pointer;
+    box-shadow: 0 4px 0 var(--shadow);
+    transition: transform 0.1s, box-shadow 0.1s;
+    letter-spacing: 1px;
+  }
+
+  .btn-start:active {
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 var(--shadow);
+  }
+
+  /* CONTROLS ROW */
+  .controls-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 10px;
+  }
+
+  .btn-pause {
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.85rem;
+    color: var(--dark);
+    background: var(--wheat);
+    border: none;
+    border-radius: 20px;
+    padding: 8px 18px;
+    cursor: pointer;
+    box-shadow: 0 3px 0 var(--shadow);
+    transition: transform 0.1s, box-shadow 0.1s;
+    white-space: nowrap;
+  }
+
+  .btn-pause:active {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 var(--shadow);
+  }
+
+  .speed-info {
+    font-size: 0.7rem;
+    color: #AA8040;
+    letter-spacing: 1px;
+  }
+
+  /* D-PAD */
+  .dpad {
+    display: grid;
+    grid-template-columns: repeat(3, 52px);
+    grid-template-rows: repeat(3, 52px);
+    gap: 4px;
+    margin-top: 4px;
+  }
+
+  .dpad-btn {
+    border: none;
+    border-radius: 10px;
+    background: var(--panel);
+    border: 2px solid var(--brown);
+    color: var(--wheat);
+    font-size: 1.3rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 3px 0 var(--shadow);
+    transition: transform 0.08s, box-shadow 0.08s, background 0.08s;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  .dpad-btn:active, .dpad-btn.pressed {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 var(--shadow);
+    background: var(--brown);
+  }
+
+  .dpad-btn.center {
+    background: transparent;
+    border-color: transparent;
+    pointer-events: none;
+    box-shadow: none;
+  }
+
+  /* LEGEND */
+  .legend {
+    display: flex;
+    gap: 14px;
+    font-size: 0.65rem;
+    color: #AA8040;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 2px 0;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 3px;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="header">
+    <div class="logo">🍔 BUN <span>RUNNER</span></div>
+    <div class="subtitle">Poctivá pekárna • rozvoz po celé ČR</div>
+  </div>
+
+  <div class="score-panel">
+    <div class="score-box">
+      <span class="score-label">Skóre</span>
+      <span class="score-value" id="score">0</span>
+    </div>
+    <div class="score-sep"></div>
+    <div class="score-box">
+      <span class="score-label">Rekord</span>
+      <span class="score-value" id="hiscore">0</span>
+    </div>
+    <div class="score-sep"></div>
+    <div class="score-box">
+      <span class="score-label">Level</span>
+      <span class="score-value" id="level">1</span>
+    </div>
+  </div>
+
+  <div class="canvas-wrap">
+    <canvas id="game" width="320" height="320"></canvas>
+    <div class="overlay" id="overlay">
+      <div class="overlay-title" id="overlay-title">🍞 BUN RUNNER</div>
+      <div class="overlay-sub" id="overlay-sub">Rozvez hamburgerové housky do celé ČR. Vyhni se překážkám!</div>
+      <button class="btn-start" id="btn-start">ZAČÍT ROZVOZ</button>
+    </div>
+  </div>
+
+  <div class="controls-row">
+    <button class="btn-pause" id="btn-pause">⏸ Pauza</button>
+    <div class="speed-info" id="speed-info">Rychlost: ● ○ ○ ○</div>
+  </div>
+
+  <div class="dpad">
+    <div></div>
+    <button class="dpad-btn" id="btn-up" aria-label="Nahoru">▲</button>
+    <div></div>
+    <button class="dpad-btn" id="btn-left" aria-label="Vlevo">◀</button>
+    <div class="dpad-btn center"></div>
+    <button class="dpad-btn" id="btn-right" aria-label="Vpravo">▶</button>
+    <div></div>
+    <button class="dpad-btn" id="btn-down" aria-label="Dolu">▼</button>
+    <div></div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><span class="legend-dot" style="background:#E8C97A"></span> Dodávka</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#FF6B35"></span> Hamburgerová houska</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#27AE60"></span> Speciál</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#C0392B"></span> Zákazník</div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const GRID = 16;
+const COLS = canvas.width / GRID;   // 20
+const ROWS = canvas.height / GRID;  // 20
+
+let snake, dir, nextDir, food, special, customer;
+let score, hiScore, level, gameLoop, paused, running;
+let specialTimer, customerTimer;
+let frame = 0;
+
+// Tile colors
+const C = {
+  bg1: '#1A0E05',
+  bg2: '#1E1008',
+  snakeHead: '#E8C97A',
+  snakeBody: '#C4A05A',
+  snakeOutline: '#7B4A1E',
+  food: '#FF6B35',
+  foodOutline: '#A0360F',
+  special: '#27AE60',
+  specialOutline: '#1A6B40',
+  customer: '#C0392B',
+  customerOutline: '#7B1510',
+  grid: 'rgba(123,74,30,0.08)',
+};
+
+const SPEEDS = [180, 140, 110, 85]; // ms per tick
+
+function speedLabel(lvl) {
+  const stars = '● '.repeat(Math.min(lvl, 4)).trim() + ' ○'.repeat(Math.max(0, 4 - lvl));
+  return `Rychlost: ${stars}`;
+}
+
+function init() {
+  snake = [{x: 10, y: 10}, {x: 9, y: 10}, {x: 8, y: 10}];
+  dir = {x: 1, y: 0};
+  nextDir = {x: 1, y: 0};
+  score = 0;
+  level = 1;
+  special = null;
+  customer = null;
+  specialTimer = 0;
+  customerTimer = 0;
+  frame = 0;
+  updateUI();
+  placeFood();
+  maybeSpawnCustomer();
+}
+
+function randCell(exclude = []) {
+  let pos;
+  let tries = 0;
+  do {
+    pos = {x: Math.floor(Math.random() * COLS), y: Math.floor(Math.random() * ROWS)};
+    tries++;
+  } while (tries < 200 && [...snake, food, special, customer, ...exclude].some(s => s && s.x === pos.x && s.y === pos.y));
+  return pos;
+}
+
+function placeFood() {
+  food = randCell();
+}
+
+function maybeSpawnSpecial() {
+  if (!special && Math.random() < 0.3) {
+    special = randCell();
+    specialTimer = 50; // ticks to live
+  }
+}
+
+function maybeSpawnCustomer() {
+  if (!customer && Math.random() < 0.25) {
+    customer = randCell();
+    customerTimer = 60;
+  }
+}
+
+function tick() {
+  if (paused || !running) return;
+  frame++;
+  dir = {...nextDir};
+
+  const head = {x: snake[0].x + dir.x, y: snake[0].y + dir.y};
+
+  // Wall collision
+  if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS) {
+    gameOver(); return;
+  }
+  // Self collision
+  if (snake.some(s => s.x === head.x && s.y === head.y)) {
+    gameOver(); return;
+  }
+
+  snake.unshift(head);
+
+  let grew = false;
+
+  // Eat regular food (bun)
+  if (head.x === food.x && head.y === food.y) {
+    score += 10 * level;
+    grew = true;
+    placeFood();
+    maybeSpawnSpecial();
+    maybeSpawnCustomer();
+    if (score >= level * 100) {
+      level = Math.min(level + 1, 4);
+      restartLoop();
+    }
+    updateUI();
+  }
+
+  // Eat special (sesame bun)
+  if (special && head.x === special.x && head.y === special.y) {
+    score += 30 * level;
+    grew = true;
+    special = null;
+    updateUI();
+  }
+
+  // Eat customer (delivers order = bonus but snake gets longer 2x)
+  if (customer && head.x === customer.x && head.y === customer.y) {
+    score += 50 * level;
+    snake.push({...snake[snake.length-1]}); // extra grow
+    grew = true;
+    customer = null;
+    updateUI();
+  }
+
+  if (!grew) snake.pop();
+
+  // Timers
+  if (special) { specialTimer--; if (specialTimer <= 0) special = null; }
+  if (customer) { customerTimer--; if (customerTimer <= 0) customer = null; }
+
+  draw();
+}
+
+function restartLoop() {
+  clearInterval(gameLoop);
+  gameLoop = setInterval(tick, SPEEDS[level - 1]);
+  document.getElementById('speed-info').textContent = speedLabel(level);
+}
+
+function gameOver() {
+  running = false;
+  clearInterval(gameLoop);
+  if (score > hiScore) { hiScore = score; localStorage.setItem('bunrunner_hi', hiScore); }
+  updateUI();
+  draw();
+  const ov = document.getElementById('overlay');
+  document.getElementById('overlay-title').textContent = '💥 BOURÁK!';
+  document.getElementById('overlay-title').className = 'overlay-title gameover';
+  document.getElementById('overlay-sub').textContent = `Skóre: ${score} ${score >= hiScore ? '🏆 Nový rekord!' : ''}`;
+  document.getElementById('btn-start').textContent = 'ZKUSIT ZNOVU';
+  ov.classList.remove('hidden');
+}
+
+function updateUI() {
+  document.getElementById('score').textContent = score;
+  document.getElementById('hiscore').textContent = hiScore;
+  document.getElementById('level').textContent = level;
+  document.getElementById('speed-info').textContent = speedLabel(level);
+}
+
+// ---- DRAW ----
+function drawGrid() {
+  ctx.strokeStyle = C.grid;
+  ctx.lineWidth = 0.5;
+  for (let x = 0; x <= COLS; x++) { ctx.beginPath(); ctx.moveTo(x*GRID,0); ctx.lineTo(x*GRID, canvas.height); ctx.stroke(); }
+  for (let y = 0; y <= ROWS; y++) { ctx.beginPath(); ctx.moveTo(0,y*GRID); ctx.lineTo(canvas.width, y*GRID); ctx.stroke(); }
+}
+
+function drawCheckerBg() {
+  for (let x = 0; x < COLS; x++) {
+    for (let y = 0; y < ROWS; y++) {
+      ctx.fillStyle = (x + y) % 2 === 0 ? C.bg1 : C.bg2;
+      ctx.fillRect(x*GRID, y*GRID, GRID, GRID);
+    }
+  }
+}
+
+function drawBun(cx, cy, r, color, outline, sesame = false) {
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.beginPath();
+  ctx.ellipse(cx+1, cy+2, r, r*0.6, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // Bun body
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI*2);
+  ctx.fill();
+
+  // Outline
+  ctx.strokeStyle = outline;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI*2);
+  ctx.stroke();
+
+  // Sesame seeds
+  if (sesame) {
+    ctx.fillStyle = '#7B4A1E';
+    const seeds = [{x:-2,y:-1},{x:1,y:-2},{x:2,y:1},{x:-1,y:2}];
+    seeds.forEach(s => {
+      ctx.beginPath();
+      ctx.ellipse(cx+s.x, cy+s.y, 1.2, 0.7, s.x*0.5, 0, Math.PI*2);
+      ctx.fill();
+    });
+  }
+
+  // Shine
+  ctx.fillStyle = 'rgba(255,255,255,0.2)';
+  ctx.beginPath();
+  ctx.arc(cx - r*0.3, cy - r*0.3, r*0.25, 0, Math.PI*2);
+  ctx.fill();
+}
+
+function drawTruck(cx, cy, dir) {
+  const s = GRID;
+  ctx.save();
+  ctx.translate(cx, cy);
+  // rotate based on direction
+  if (dir.x === 1) ctx.rotate(0);
+  else if (dir.x === -1) ctx.rotate(Math.PI);
+  else if (dir.y === 1) ctx.rotate(Math.PI/2);
+  else ctx.rotate(-Math.PI/2);
+
+  // Truck body
+  ctx.fillStyle = '#E8C97A';
+  ctx.beginPath();
+  ctx.roundRect(-s*0.45, -s*0.38, s*0.9, s*0.76, 2);
+  ctx.fill();
+  ctx.strokeStyle = '#7B4A1E';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Cabin highlight
+  ctx.fillStyle = '#D4A84B';
+  ctx.beginPath();
+  ctx.roundRect(s*0.1, -s*0.38, s*0.35, s*0.76, 2);
+  ctx.fill();
+
+  // Window
+  ctx.fillStyle = '#5BBFFF';
+  ctx.beginPath();
+  ctx.roundRect(s*0.15, -s*0.22, s*0.22, s*0.3, 1.5);
+  ctx.fill();
+  ctx.strokeStyle = '#2B8FCC';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Wheels
+  ctx.fillStyle = '#3A2010';
+  [[-0.1, 0.38], [0.3, 0.38], [-0.1, -0.38], [0.3, -0.38]].forEach(([wx,wy]) => {
+    ctx.beginPath();
+    ctx.arc(cx*0 + wx*s, cy*0 + wy*s, s*0.12, 0, Math.PI*2);
+    ctx.fill();
+  });
+
+  // Bun logo on side
+  ctx.fillStyle = '#FF6B35';
+  ctx.beginPath();
+  ctx.arc(-s*0.15, 0, s*0.12, 0, Math.PI*2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function drawSnakeSegment(seg, i) {
+  const cx = seg.x * GRID + GRID/2;
+  const cy = seg.y * GRID + GRID/2;
+  if (i === 0) {
+    drawTruck(cx, cy, dir);
+  } else {
+    // Body segment = bun
+    const alpha = Math.max(0.4, 1 - i * 0.04);
+    ctx.globalAlpha = alpha;
+    drawBun(cx, cy, GRID*0.4, '#C4A05A', '#7B4A1E', false);
+    ctx.globalAlpha = 1;
+  }
+}
+
+function drawFood() {
+  const cx = food.x * GRID + GRID/2;
+  const cy = food.y * GRID + GRID/2;
+  // pulsing
+  const pulse = 1 + Math.sin(frame * 0.3) * 0.08;
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.scale(pulse, pulse);
+  drawBun(0, 0, GRID*0.42, '#FF6B35', '#A0360F', true);
+  ctx.restore();
+}
+
+function drawSpecial() {
+  if (!special) return;
+  const cx = special.x * GRID + GRID/2;
+  const cy = special.y * GRID + GRID/2;
+  const pulse = 1 + Math.sin(frame * 0.4) * 0.12;
+  // Blink when about to expire
+  if (specialTimer < 15 && frame % 6 < 3) return;
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.scale(pulse, pulse);
+  drawBun(0, 0, GRID*0.44, '#27AE60', '#1A6B40', true);
+  // star mark
+  ctx.fillStyle = '#FFF8E7';
+  ctx.font = `${GRID*0.45}px serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('★', 0, 1);
+  ctx.restore();
+}
+
+function drawCustomer() {
+  if (!customer) return;
+  if (customerTimer < 15 && frame % 6 < 3) return;
+  const cx = customer.x * GRID + GRID/2;
+  const cy = customer.y * GRID + GRID/2;
+  const bob = Math.sin(frame * 0.2) * 1.5;
+  ctx.save();
+  ctx.translate(cx, cy + bob);
+  // Person
+  ctx.fillStyle = '#C0392B';
+  ctx.beginPath();
+  ctx.arc(0, -GRID*0.22, GRID*0.22, 0, Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle = '#7B1510';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  ctx.fillStyle = '#E8A87C';
+  ctx.beginPath();
+  ctx.arc(0, -GRID*0.28, GRID*0.13, 0, Math.PI*2);
+  ctx.fill();
+
+  // "!" above
+  ctx.fillStyle = '#FFD700';
+  ctx.font = `bold ${GRID*0.5}px Fredoka One, cursive`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('!', 0, -GRID*0.52);
+  ctx.restore();
+}
+
+function draw() {
+  drawCheckerBg();
+  drawGrid();
+  drawFood();
+  drawSpecial();
+  drawCustomer();
+  [...snake].reverse().forEach((seg, i) => drawSnakeSegment(snake[snake.length - 1 - i], snake.length - 1 - i));
+}
+
+// ---- INPUT ----
+function setDir(dx, dy) {
+  // Prevent reversing
+  if (dx !== 0 && dir.x !== 0) return;
+  if (dy !== 0 && dir.y !== 0) return;
+  nextDir = {x: dx, y: dy};
+}
+
+document.addEventListener('keydown', e => {
+  switch(e.key) {
+    case 'ArrowUp': case 'w': e.preventDefault(); setDir(0,-1); break;
+    case 'ArrowDown': case 's': e.preventDefault(); setDir(0,1); break;
+    case 'ArrowLeft': case 'a': e.preventDefault(); setDir(-1,0); break;
+    case 'ArrowRight': case 'd': e.preventDefault(); setDir(1,0); break;
+    case ' ': e.preventDefault(); togglePause(); break;
+  }
+});
+
+function dpadPress(dx, dy, btn) {
+  setDir(dx, dy);
+  btn.classList.add('pressed');
+  setTimeout(() => btn.classList.remove('pressed'), 150);
+}
+
+document.getElementById('btn-up').addEventListener('click', function() { dpadPress(0,-1,this); });
+document.getElementById('btn-down').addEventListener('click', function() { dpadPress(0,1,this); });
+document.getElementById('btn-left').addEventListener('click', function() { dpadPress(-1,0,this); });
+document.getElementById('btn-right').addEventListener('click', function() { dpadPress(1,0,this); });
+
+// Touch swipe on canvas
+let touchStart = null;
+canvas.addEventListener('touchstart', e => { touchStart = e.touches[0]; }, {passive: true});
+canvas.addEventListener('touchend', e => {
+  if (!touchStart) return;
+  const dx = e.changedTouches[0].clientX - touchStart.clientX;
+  const dy = e.changedTouches[0].clientY - touchStart.clientY;
+  if (Math.abs(dx) > Math.abs(dy)) { if (Math.abs(dx) > 20) setDir(dx > 0 ? 1 : -1, 0); }
+  else { if (Math.abs(dy) > 20) setDir(0, dy > 0 ? 1 : -1); }
+  touchStart = null;
+}, {passive: true});
+
+function togglePause() {
+  if (!running) return;
+  paused = !paused;
+  document.getElementById('btn-pause').textContent = paused ? '▶ Pokračovat' : '⏸ Pauza';
+}
+
+document.getElementById('btn-pause').addEventListener('click', togglePause);
+
+document.getElementById('btn-start').addEventListener('click', () => {
+  document.getElementById('overlay').classList.add('hidden');
+  hiScore = parseInt(localStorage.getItem('bunrunner_hi') || '0');
+  init();
+  paused = false;
+  running = true;
+  restartLoop();
+  draw();
+});
+
+// Initial state
+hiScore = parseInt(localStorage.getItem('bunrunner_hi') || '0');
+updateUI();
+// Draw initial screen behind overlay
+canvas.width = 320; canvas.height = 320;
+snake = [{x:10,y:10},{x:9,y:10},{x:8,y:10}];
+dir = {x:1,y:0};
+food = {x:14, y:10};
+draw();
+</script>
+</body>
+</html>
